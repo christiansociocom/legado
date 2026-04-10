@@ -27,16 +27,18 @@ const AdminDashboard = () => {
   }, [user, isAdmin, authLoading]);
 
   const loadData = async () => {
-    const [b, c, s, r] = await Promise.all([
+    const [b, c, s, r, cm] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("custom_package_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false }),
       supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+      supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
     ]);
     setBookings(b.data || []);
     setCustomRequests(c.data || []);
     setSubscribers(s.data || []);
     setReviews(r.data || []);
+    setContactMessages(cm.data || []);
     setLoading(false);
   };
 
