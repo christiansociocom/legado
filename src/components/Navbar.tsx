@@ -12,6 +12,7 @@ const navLinks = [
   { label: "Packages", to: "/packages" },
   { label: "Map", to: "/map" },
   { label: "Custom Trip", to: "/custom-package" },
+  { label: "About", to: "/about" },
   { label: "Contact", to: "/contact" },
 ];
 

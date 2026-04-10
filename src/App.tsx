@@ -7,12 +7,14 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import DestinationsPage from "./pages/DestinationsPage";
+import DestinationDetailPage from "./pages/DestinationDetailPage";
 import PackagesPage from "./pages/PackagesPage";
 import MapPage from "./pages/MapPage";
 import BookingPage from "./pages/BookingPage";
 import MyBookingsPage from "./pages/MyBookingsPage";
 import CustomPackagePage from "./pages/CustomPackagePage";
 import ContactPage from "./pages/ContactPage";
+import AboutPage from "./pages/AboutPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
@@ -31,12 +33,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/destinations" element={<DestinationsPage />} />
+            <Route path="/destinations/:slug" element={<DestinationDetailPage />} />
             <Route path="/packages" element={<PackagesPage />} />
             <Route path="/map" element={<MapPage />} />
             <Route path="/booking/:packageId" element={<BookingPage />} />
             <Route path="/bookings" element={<MyBookingsPage />} />
             <Route path="/custom-package" element={<CustomPackagePage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
