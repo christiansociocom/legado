@@ -1,3 +1,4 @@
+// 1. Update App.tsx - Add Blog and Gallery Routes
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -15,6 +16,8 @@ import MyBookingsPage from "./pages/MyBookingsPage";
 import CustomPackagePage from "./pages/CustomPackagePage";
 import ContactPage from "./pages/ContactPage";
 import AboutPage from "./pages/AboutPage";
+import BlogPage from "./pages/BlogPage";
+import GalleryPage from "./pages/GalleryPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
@@ -41,6 +44,8 @@ const App = () => (
             <Route path="/custom-package" element={<CustomPackagePage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
