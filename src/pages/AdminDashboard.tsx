@@ -93,6 +93,7 @@ const AdminDashboard = () => {
               <TabsList className="mb-6">
                 <TabsTrigger value="bookings">Bookings</TabsTrigger>
                 <TabsTrigger value="custom">Custom Requests</TabsTrigger>
+                <TabsTrigger value="contacts">Messages</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
               </TabsList>
