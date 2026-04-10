@@ -1,19 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Fix default marker icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 const attractions = [
   { name: "Serengeti National Park", lat: -2.333, lng: 34.833, type: "National Park", desc: "Home to the Great Migration" },
@@ -35,8 +26,52 @@ const attractions = [
 
 const MapPage = () => {
   const [selectedType, setSelectedType] = useState("all");
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+
   const types = ["all", ...Array.from(new Set(attractions.map((a) => a.type)))];
   const filtered = selectedType === "all" ? attractions : attractions.filter((a) => a.type === selectedType);
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    // Fix default marker icons
+    delete (L.Icon.Default.prototype as any)._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    });
+
+    const map = L.map(mapContainerRef.current).setView([-6.0, 35.0], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Clear old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    // Add new markers
+    filtered.forEach((a) => {
+      const marker = L.marker([a.lat, a.lng])
+        .addTo(mapRef.current!)
+        .bindPopup(`<strong>${a.name}</strong><br/><em>${a.type}</em><br/>${a.desc}`);
+      markersRef.current.push(marker);
+    });
+  }, [filtered]);
 
   return (
     <div className="min-h-screen">
@@ -58,23 +93,7 @@ const MapPage = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="rounded-xl overflow-hidden shadow-safari border">
-            <MapContainer center={[-6.0, 35.0]} zoom={6} style={{ height: "70vh", width: "100%" }} scrollWheelZoom={true}>
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {filtered.map((a) => (
-                <Marker key={a.name} position={[a.lat, a.lng]}>
-                  <Popup>
-                    <div>
-                      <h3 className="font-bold text-sm">{a.name}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{a.type}</p>
-                      <p className="text-xs mt-1">{a.desc}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+            <div ref={mapContainerRef} style={{ height: "70vh", width: "100%" }} />
           </motion.div>
 
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
