@@ -17,6 +17,7 @@ const AdminDashboard = () => {
   const [customRequests, setCustomRequests] = useState<any[]>([]);
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [contactMessages, setContactMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
