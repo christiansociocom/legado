@@ -10,11 +10,11 @@ const GalleryPage = () => {
 
   const images = [
     { id: 1, category: "safari", title: "Lions in Serengeti", src: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=500&h=400&fit=crop" },
-    { id: 2, category: "wildlife", title: "African Elephant", src: "https://images.unsplash.com/photo-1551240589-973e9dd56f59?w=500&h=400&fit=crop" },
+    { id: 2, category: "wildlife", title: "African Elephant", src: "https://plus.unsplash.com/premium_photo-1661810056990-57be781caa2d?w=500&h=400&fit=crop" },
     { id: 3, category: "destinations", title: "Ngorongoro Crater", src: "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&h=400&fit=crop" },
     { id: 4, category: "beach", title: "Zanzibar Sunset", src: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&h=400&fit=crop" },
     { id: 5, category: "safari", title: "Giraffes", src: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=500&h=400&fit=crop" },
-    { id: 6, category: "wildlife", title: "Leopard", src: "https://images.unsplash.com/photo-1495575621204-69b7881a68ab?w=500&h=400&fit=crop" },
+    { id: 6, category: "wildlife", title: "Leopard", src: "https://plus.unsplash.com/premium_photo-1661837277372-1cd072f18ae1?w=500&h=400&fit=crop" },
   ];
 
   const categories = ["all", ...Array.from(new Set(images.map((img) => img.category)))];
