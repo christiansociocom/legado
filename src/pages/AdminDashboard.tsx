@@ -174,6 +174,7 @@ const AdminDashboard = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="reviews">
                 <div className="space-y-3">
                   {reviews.map((r) => (
                     <Card key={r.id}>
