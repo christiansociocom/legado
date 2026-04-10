@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, User, LogOut, Shield } from "lucide-react";
+import { Menu, X, LogOut, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,8 @@ const navLinks = [
   { label: "Map", to: "/map" },
   { label: "Custom Trip", to: "/custom-package" },
   { label: "About", to: "/about" },
+  { label: "Blog", to: "/blog" },
+  { label: "Gallery", to: "/gallery" },
   { label: "Contact", to: "/contact" },
 ];
 
@@ -37,9 +39,10 @@ const Navbar = () => {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-md shadow-md" : "bg-transparent"}`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 md:h-20">
-          <Link to="/" className="flex items-center gap-2">
-            <span className={`font-display text-xl md:text-2xl font-bold ${scrolled ? "text-foreground" : "text-primary-foreground"}`}>
-              🌍 Tanzania<span className="text-gradient-safari">Safari</span>
+          <Link to="/" className="flex items-center gap-3">
+            <img src="/logo.png" alt="Legado Safaris" className="h-10 md:h-12 object-contain" />
+            <span className={`font-display text-lg md:text-2xl font-bold ${scrolled ? "text-foreground" : "text-primary-foreground"}`}>
+              Legado Safaris
             </span>
           </Link>
 
@@ -108,7 +111,7 @@ const Navbar = () => {
                   <button onClick={() => { handleLogout(); setIsOpen(false); }} className="text-foreground py-2 font-medium text-left">Sign Out</button>
                 </>
               ) : (
-                <Button onClick={() => { navigate("/auth"); setIsOpen(false); }} className="bg-safari-gradient text-primary-foreground">Sign In</Button>
+                <Button onClick={() => { navigate("/auth"); setIsOpen(false); }} className="bg-safari-gradient text-primary-foreground w-full">Sign In</Button>
               )}
             </div>
           </motion.div>
