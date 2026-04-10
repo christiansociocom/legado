@@ -153,7 +153,27 @@ const AdminDashboard = () => {
                 </div>
               </TabsContent>
 
-              <TabsContent value="reviews">
+
+              <TabsContent value="contacts">
+                <div className="space-y-3">
+                  {contactMessages.map((m) => (
+                    <Card key={m.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="font-semibold">{m.full_name}</p>
+                            <p className="text-sm text-muted-foreground">{m.email} · {m.subject}</p>
+                            <p className="text-sm mt-1">{m.message}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{new Date(m.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {contactMessages.length === 0 && <p className="text-muted-foreground text-center py-8">No messages yet</p>}
+                </div>
+              </TabsContent>
+
                 <div className="space-y-3">
                   {reviews.map((r) => (
                     <Card key={r.id}>
