@@ -1,225 +1,308 @@
-import { useEffect, useState } from "react";
+// 7. Create/Update AdminDashboard.tsx - Full admin functionality
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Users, Package, MapPin, Calendar, Star, Mail, BarChart3, Settings, Check, X, Eye } from "lucide-react";
+import { Users, LogOut, AlertCircle, Loader, Trash2, Eye, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+
+interface UserData {
+  id: string;
+  email: string;
+  created_at: string;
+  last_sign_in_at: string | null;
+}
+
+interface Booking {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  travel_date: string;
+  number_of_guests: number;
+  status: string;
+  total_price: number;
+  created_at: string;
+}
 
 const AdminDashboard = () => {
-  const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [customRequests, setCustomRequests] = useState<any[]>([]);
-  const [subscribers, setSubscribers] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [contactMessages, setContactMessages] = useState<any[]>([]);
+  const { user, isAdmin, logout, loading: authLoading } = useAuth();
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<"users" | "bookings">("bookings");
 
   useEffect(() => {
+    if (!authLoading && !isAdmin) {
+      navigate("/");
+      return;
+    }
+
     if (authLoading) return;
-    if (!user || !isAdmin) { navigate("/"); return; }
-    loadData();
-  }, [user, isAdmin, authLoading]);
 
-  const loadData = async () => {
-    const [b, c, s, r, cm] = await Promise.all([
-      supabase.from("bookings").select("*").order("created_at", { ascending: false }),
-      supabase.from("custom_package_requests").select("*").order("created_at", { ascending: false }),
-      supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false }),
-      supabase.from("reviews").select("*").order("created_at", { ascending: false }),
-      supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
-    ]);
-    setBookings(b.data || []);
-    setCustomRequests(c.data || []);
-    setSubscribers(s.data || []);
-    setReviews(r.data || []);
-    setContactMessages(cm.data || []);
-    setLoading(false);
+    fetchData();
+  }, [isAdmin, authLoading, navigate]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      // Fetch bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from("bookings")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (bookingsError) throw bookingsError;
+      setBookings(bookingsData || []);
+
+      // Fetch users from auth
+      const { data: { users: authUsers }, error: usersError } = await supabase.auth.admin.listUsers();
+      
+      if (usersError) throw usersError;
+      setUsers(authUsers || []);
+    } catch (err: any) {
+      console.error("Error fetching data:", err);
+      setError(`Failed to load data: ${err.message}`);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateBookingStatus = async (id: string, status: string) => {
-    await supabase.from("bookings").update({ status }).eq("id", id);
-    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      if (error) throw error;
+      setUsers(users.filter((u) => u.id !== userId));
+      toast.success("User deleted successfully");
+    } catch (err: any) {
+      toast.error(`Error deleting user: ${err.message}`);
+    }
   };
 
-  const updateCustomStatus = async (id: string, status: string) => {
-    await supabase.from("custom_package_requests").update({ status }).eq("id", id);
-    setCustomRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+  const handleDeleteBooking = async (bookingId: string) => {
+    if (!confirm("Are you sure you want to delete this booking?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("bookings").delete().eq("id", bookingId);
+      if (error) throw error;
+      setBookings(bookings.filter((b) => b.id !== bookingId));
+      toast.success("Booking deleted successfully");
+    } catch (err: any) {
+      toast.error(`Error deleting booking: ${err.message}`);
+    }
   };
 
-  const approveReview = async (id: string, approved: boolean) => {
-    await supabase.from("reviews").update({ is_approved: approved }).eq("id", id);
-    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, is_approved: approved } : r)));
-  };
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  if (authLoading || loading) return <div className="min-h-screen"><Navbar /><div className="pt-32 text-center text-muted-foreground">Loading...</div></div>;
-
-  const stats = [
-    { label: "Total Bookings", value: bookings.length, icon: Calendar, color: "text-safari-amber" },
-    { label: "Custom Requests", value: customRequests.length, icon: Package, color: "text-safari-green" },
-    { label: "Subscribers", value: subscribers.length, icon: Mail, color: "text-safari-sky" },
-    { label: "Reviews", value: reviews.length, icon: Star, color: "text-safari-gold" },
-  ];
-
-  const statusBadge = (status: string) => {
-    const colors: Record<string, string> = { pending: "bg-yellow-100 text-yellow-800", confirmed: "bg-green-100 text-green-800", cancelled: "bg-red-100 text-red-800", completed: "bg-blue-100 text-blue-800", responded: "bg-purple-100 text-purple-800" };
-    return <Badge className={colors[status] || ""}>{status}</Badge>;
-  };
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="pt-32 text-center px-4 pb-16">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="font-display text-2xl mb-4">Access Denied</h2>
+          <p className="text-muted-foreground mb-6">You don't have permission to access this page.</p>
+          <Button onClick={() => navigate("/")} className="bg-safari-gradient text-primary-foreground">
+            Go Home
+          </Button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-muted"><Navbar />
+    <div className="min-h-screen">
+      <Navbar />
       <div className="pt-24 pb-16">
         <div className="container mx-auto px-4">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="font-display text-3xl font-bold mb-8">Admin Dashboard</h1>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              {stats.map((s) => (
-                <Card key={s.label}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <s.icon className={`w-8 h-8 ${s.color}`} />
-                    <div><p className="text-2xl font-bold">{s.value}</p><p className="text-xs text-muted-foreground">{s.label}</p></div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-4">
+                <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="mr-2">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </Button>
+                <div>
+                  <h1 className="font-display text-3xl font-bold">Admin Dashboard</h1>
+                  <p className="text-muted-foreground text-sm">Manage bookings, users, and site data</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  logout();
+                  navigate("/");
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                <LogOut className="w-4 h-4 mr-2" /> Sign Out
+              </Button>
             </div>
 
-            <Tabs defaultValue="bookings">
-              <TabsList className="mb-6">
-                <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                <TabsTrigger value="custom">Custom Requests</TabsTrigger>
-                <TabsTrigger value="contacts">Messages</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
-              </TabsList>
+            {error && (
+              <Card className="mb-6 border-red-200 bg-red-50">
+                <CardContent className="p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <p className="text-red-700 text-sm">{error}</p>
+                </CardContent>
+              </Card>
+            )}
 
-              <TabsContent value="bookings">
-                <div className="space-y-3">
-                  {bookings.map((b) => (
-                    <Card key={b.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between flex-wrap gap-2">
-                          <div>
-                            <p className="font-semibold">{b.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{b.email} · {new Date(b.travel_date).toLocaleDateString()} · {b.number_of_guests} guests</p>
-                            {b.special_requests && <p className="text-xs text-muted-foreground italic mt-1">"{b.special_requests}"</p>}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {b.total_price && <span className="font-bold">${b.total_price}</span>}
-                            {statusBadge(b.status)}
-                            {b.status === "pending" && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => updateBookingStatus(b.id, "confirmed")} className="text-green-600"><Check className="w-4 h-4" /></Button>
-                                <Button size="sm" variant="outline" onClick={() => updateBookingStatus(b.id, "cancelled")} className="text-red-600"><X className="w-4 h-4" /></Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {bookings.length === 0 && <p className="text-muted-foreground text-center py-8">No bookings yet</p>}
-                </div>
-              </TabsContent>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6 border-b">
+              <Button
+                variant={activeTab === "bookings" ? "default" : "ghost"}
+                onClick={() => setActiveTab("bookings")}
+                className={activeTab === "bookings" ? "bg-safari-gradient text-primary-foreground" : ""}
+              >
+                Bookings ({bookings.length})
+              </Button>
+              <Button
+                variant={activeTab === "users" ? "default" : "ghost"}
+                onClick={() => setActiveTab("users")}
+                className={activeTab === "users" ? "bg-safari-gradient text-primary-foreground" : ""}
+              >
+                <Users className="w-4 h-4 mr-2" /> Users ({users.length})
+              </Button>
+            </div>
 
-              <TabsContent value="custom">
-                <div className="space-y-3">
-                  {customRequests.map((r) => (
-                    <Card key={r.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between flex-wrap gap-2">
-                          <div>
-                            <p className="font-semibold">{r.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{r.email} · {r.duration_days} days · {r.number_of_guests} guests · {r.budget_range}</p>
-                            <p className="text-xs text-muted-foreground mt-1">Activities: {r.activities?.join(", ") || "None specified"}</p>
-                            {r.special_requests && <p className="text-xs italic mt-1">"{r.special_requests}"</p>}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {statusBadge(r.status)}
-                            {r.status === "pending" && (
-                              <Button size="sm" variant="outline" onClick={() => updateCustomStatus(r.id, "responded")}>Mark Responded</Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {customRequests.length === 0 && <p className="text-muted-foreground text-center py-8">No custom requests yet</p>}
-                </div>
-              </TabsContent>
-
-
-              <TabsContent value="contacts">
-                <div className="space-y-3">
-                  {contactMessages.map((m) => (
-                    <Card key={m.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between flex-wrap gap-2">
-                          <div>
-                            <p className="font-semibold">{m.full_name}</p>
-                            <p className="text-sm text-muted-foreground">{m.email} · {m.subject}</p>
-                            <p className="text-sm mt-1">{m.message}</p>
-                          </div>
-                          <span className="text-xs text-muted-foreground">{new Date(m.created_at).toLocaleDateString()}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {contactMessages.length === 0 && <p className="text-muted-foreground text-center py-8">No messages yet</p>}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="reviews">
-                <div className="space-y-3">
-                  {reviews.map((r) => (
-                    <Card key={r.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between flex-wrap gap-2">
-                          <div>
-                            <p className="font-semibold">{r.reviewer_name || "Anonymous"}</p>
-                            <div className="flex gap-1 my-1">{Array.from({ length: r.rating }).map((_, i) => <Star key={i} className="w-4 h-4 text-safari-gold fill-safari-gold" />)}</div>
-                            <p className="text-sm text-muted-foreground">{r.comment}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={r.is_approved ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
-                              {r.is_approved ? "Approved" : "Pending"}
-                            </Badge>
-                            <Button size="sm" variant="outline" onClick={() => approveReview(r.id, !r.is_approved)}>
-                              {r.is_approved ? "Unapprove" : "Approve"}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {reviews.length === 0 && <p className="text-muted-foreground text-center py-8">No reviews yet</p>}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="subscribers">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="space-y-2">
-                      {subscribers.map((s) => (
-                        <div key={s.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                          <span className="text-sm">{s.email}</span>
-                          <span className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
-                        </div>
-                      ))}
-                      {subscribers.length === 0 && <p className="text-muted-foreground text-center py-4">No subscribers yet</p>}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : activeTab === "bookings" ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Bookings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2">Guest Name</th>
+                          <th className="text-left py-2 px-2">Email</th>
+                          <th className="text-left py-2 px-2">Travel Date</th>
+                          <th className="text-left py-2 px-2">Guests</th>
+                          <th className="text-left py-2 px-2">Status</th>
+                          <th className="text-left py-2 px-2">Amount</th>
+                          <th className="text-left py-2 px-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.map((booking) => (
+                          <tr key={booking.id} className="border-b hover:bg-muted/50 transition-colors">
+                            <td className="py-3 px-2 font-medium">{booking.full_name}</td>
+                            <td className="py-3 px-2 text-muted-foreground">{booking.email}</td>
+                            <td className="py-3 px-2">{new Date(booking.travel_date).toLocaleDateString()}</td>
+                            <td className="py-3 px-2">{booking.number_of_guests}</td>
+                            <td className="py-3 px-2">
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                booking.status === "confirmed" ? "bg-green-100 text-green-800" :
+                                booking.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                                "bg-red-100 text-red-800"
+                              }`}>
+                                {booking.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 font-medium">${booking.total_price}</td>
+                            <td className="py-3 px-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteBooking(booking.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {bookings.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No bookings found
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Registered Users</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2">Email</th>
+                          <th className="text-left py-2 px-2">Joined</th>
+                          <th className="text-left py-2 px-2">Last Sign In</th>
+                          <th className="text-left py-2 px-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {users.map((u) => (
+                          <tr key={u.id} className="border-b hover:bg-muted/50 transition-colors">
+                            <td className="py-3 px-2 font-medium">{u.email}</td>
+                            <td className="py-3 px-2 text-muted-foreground">
+                              {new Date(u.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-2 text-muted-foreground">
+                              {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleDateString() : "Never"}
+                            </td>
+                            <td className="py-3 px-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteUser(u.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {users.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No users found
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </motion.div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
