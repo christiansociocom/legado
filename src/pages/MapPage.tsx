@@ -26,6 +26,7 @@ const attractions = [
 
 const MapPage = () => {
   const [selectedType, setSelectedType] = useState("all");
+  const [isMapReady, setIsMapReady] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -33,45 +34,88 @@ const MapPage = () => {
   const types = ["all", ...Array.from(new Set(attractions.map((a) => a.type)))];
   const filtered = selectedType === "all" ? attractions : attractions.filter((a) => a.type === selectedType);
 
+  // Initialize Leaflet Icon
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    // Fix default marker icons
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    });
-
-    const map = L.map(mapContainerRef.current).setView([-6.0, 35.0], 6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    }).addTo(map);
-
-    mapRef.current = map;
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    if (!L.Icon.Default.prototype._getIconUrl) {
+      L.Icon.Default.mergeOptions({
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+    }
   }, []);
 
+  // Initialize map once
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (isMapReady || !mapContainerRef.current) return;
 
-    // Clear old markers
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    try {
+      const map = L.map(mapContainerRef.current, {
+        attributionControl: true,
+        zoomControl: true,
+      }).setView([-6.0, 35.0], 6);
 
-    // Add new markers
-    filtered.forEach((a) => {
-      const marker = L.marker([a.lat, a.lng])
-        .addTo(mapRef.current!)
-        .bindPopup(`<strong>${a.name}</strong><br/><em>${a.type}</em><br/>${a.desc}`);
-      markersRef.current.push(marker);
-    });
-  }, [filtered]);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapRef.current = map;
+      setIsMapReady(true);
+    } catch (error) {
+      console.error("Error initializing map:", error);
+    }
+  }, [isMapReady]);
+
+  // Update markers
+  useEffect(() => {
+    if (!isMapReady || !mapRef.current) return;
+
+    try {
+      // Remove old markers
+      markersRef.current.forEach((marker) => {
+        if (marker && typeof marker.remove === "function") {
+          marker.remove();
+        }
+      });
+      markersRef.current = [];
+
+      // Add new markers
+      filtered.forEach((attraction) => {
+        try {
+          const marker = L.marker([attraction.lat, attraction.lng])
+            .addTo(mapRef.current!)
+            .bindPopup(
+              `<div style="width: 200px;"><strong>${attraction.name}</strong><br/><em>${attraction.type}</em><br/>${attraction.desc}</div>`
+            );
+          markersRef.current.push(marker);
+        } catch (e) {
+          console.warn("Error adding marker:", e);
+        }
+      });
+    } catch (error) {
+      console.error("Error updating markers:", error);
+    }
+  }, [filtered, isMapReady]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        try {
+          markersRef.current.forEach((m) => {
+            if (m && typeof m.remove === "function") {
+              m.remove();
+            }
+          });
+          mapRef.current.remove();
+          mapRef.current = null;
+        } catch (e) {
+          console.warn("Error cleaning up map:", e);
+        }
+      }
+    };
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -84,15 +128,25 @@ const MapPage = () => {
             <p className="text-muted-foreground max-w-2xl mx-auto mb-6">Discover parks, islands, mountains, and attractions across Tanzania.</p>
             <div className="flex justify-center gap-2 flex-wrap">
               {types.map((t) => (
-                <Button key={t} variant={selectedType === t ? "default" : "outline"} size="sm" onClick={() => setSelectedType(t)}
-                  className={selectedType === t ? "bg-safari-gradient text-primary-foreground" : ""}>
+                <Button
+                  key={t}
+                  variant={selectedType === t ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedType(t)}
+                  className={selectedType === t ? "bg-safari-gradient text-primary-foreground" : ""}
+                >
                   {t === "all" ? "All" : t}
                 </Button>
               ))}
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="rounded-xl overflow-hidden shadow-safari border">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-xl overflow-hidden shadow-safari border"
+          >
             <div ref={mapContainerRef} style={{ height: "70vh", width: "100%" }} />
           </motion.div>
 
