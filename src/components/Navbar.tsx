@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut, Shield } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
@@ -21,7 +20,7 @@ const navLinks = [
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +30,7 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await logout();
     navigate("/");
   };
 

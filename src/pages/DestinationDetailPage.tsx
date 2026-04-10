@@ -91,17 +91,27 @@ const DestinationDetailPage = () => {
   }, [slug]);
 
   const loadDestination = async () => {
-    // Try DB first
-    const { data: dbDest } = await supabase.from("destinations").select("*").eq("slug", slug!).maybeSingle();
-    if (dbDest) {
-      setDestination(dbDest);
-      const { data: revs } = await supabase.from("reviews").select("*").eq("destination_id", dbDest.id).eq("is_approved", true).order("created_at", { ascending: false });
-      setReviews(revs || []);
-    } else {
-      // Fallback to static
-      setDestination(fallbackDestinations[slug!] || null);
+    // Show static data instantly if available — no spinner for known destinations
+    const staticDest = fallbackDestinations[slug!];
+    if (staticDest) {
+      setDestination(staticDest);
+      setLoading(false);
     }
-    setLoading(false);
+
+    // Hydrate from DB in the background (richer data + reviews)
+    try {
+      const { data: dbDest } = await supabase.from("destinations").select("*").eq("slug", slug!).maybeSingle();
+      if (dbDest) {
+        setDestination(dbDest);
+        const { data: revs } = await supabase.from("reviews").select("*").eq("destination_id", dbDest.id).eq("is_approved", true).order("created_at", { ascending: false });
+        setReviews(revs || []);
+      }
+    } catch (e) {
+      console.warn("Could not load destination from DB:", e);
+    } finally {
+      // If no static data was found, loading is still true — resolve it now
+      setLoading(false);
+    }
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {

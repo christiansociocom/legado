@@ -57,15 +57,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = async () => {
-    setLoading(true);
     try {
       await supabase.auth.signOut();
-      setUser(null);
-      setIsAdmin(false);
+      // onAuthStateChange will fire and clear user/isAdmin/loading automatically
     } catch (error) {
       console.error("Error logging out:", error);
-    } finally {
-      setLoading(false);
+      // Force clear state if signOut threw
+      setUser(null);
+      setIsAdmin(false);
     }
   };
 
