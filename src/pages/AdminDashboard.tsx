@@ -17,6 +17,7 @@ const AdminDashboard = () => {
   const [customRequests, setCustomRequests] = useState<any[]>([]);
   const [subscribers, setSubscribers] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [contactMessages, setContactMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,16 +27,18 @@ const AdminDashboard = () => {
   }, [user, isAdmin, authLoading]);
 
   const loadData = async () => {
-    const [b, c, s, r] = await Promise.all([
+    const [b, c, s, r, cm] = await Promise.all([
       supabase.from("bookings").select("*").order("created_at", { ascending: false }),
       supabase.from("custom_package_requests").select("*").order("created_at", { ascending: false }),
       supabase.from("newsletter_subscribers").select("*").order("created_at", { ascending: false }),
       supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+      supabase.from("contact_messages").select("*").order("created_at", { ascending: false }),
     ]);
     setBookings(b.data || []);
     setCustomRequests(c.data || []);
     setSubscribers(s.data || []);
     setReviews(r.data || []);
+    setContactMessages(cm.data || []);
     setLoading(false);
   };
 
@@ -90,6 +93,7 @@ const AdminDashboard = () => {
               <TabsList className="mb-6">
                 <TabsTrigger value="bookings">Bookings</TabsTrigger>
                 <TabsTrigger value="custom">Custom Requests</TabsTrigger>
+                <TabsTrigger value="contacts">Messages</TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="subscribers">Subscribers</TabsTrigger>
               </TabsList>
@@ -146,6 +150,27 @@ const AdminDashboard = () => {
                     </Card>
                   ))}
                   {customRequests.length === 0 && <p className="text-muted-foreground text-center py-8">No custom requests yet</p>}
+                </div>
+              </TabsContent>
+
+
+              <TabsContent value="contacts">
+                <div className="space-y-3">
+                  {contactMessages.map((m) => (
+                    <Card key={m.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="font-semibold">{m.full_name}</p>
+                            <p className="text-sm text-muted-foreground">{m.email} · {m.subject}</p>
+                            <p className="text-sm mt-1">{m.message}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{new Date(m.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {contactMessages.length === 0 && <p className="text-muted-foreground text-center py-8">No messages yet</p>}
                 </div>
               </TabsContent>
 
