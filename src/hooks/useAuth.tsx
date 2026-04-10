@@ -1,4 +1,3 @@
-// 6. Fix useAuth.tsx - Fix sign out not updating UI
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,12 +9,25 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ 
-  user: null, 
-  isAdmin: false, 
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAdmin: false,
   loading: true,
-  logout: async () => {}
+  logout: async () => {},
 });
+
+const checkAdminRole = async (userId: string): Promise<boolean> => {
+  try {
+    const { data } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    return !!data;
+  } catch (e) {
+    console.warn("Error checking admin role:", e);
+    return false;
+  }
+};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -23,48 +35,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        try {
-          const { data } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
-          setIsAdmin(!!data);
-        } catch (e) {
-          console.warn("Error checking admin role:", e);
-          setIsAdmin(false);
-        }
+    // Get initial session synchronously — no async work inside the lock
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      setLoading(false);
+
+      // Check admin role outside the lock (deferred)
+      if (currentUser) {
+        checkAdminRole(currentUser.id).then(setIsAdmin);
+      }
+    });
+
+    // Listen for auth state changes — keep callback synchronous to avoid lock timeout
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const currentUser = session?.user ?? null;
+
+      // Update user state synchronously — no async work here
+      setUser(currentUser);
+      setLoading(false);
+
+      if (event === "SIGNED_OUT") {
+        // Clear admin immediately on sign out
+        setIsAdmin(false);
+        return;
+      }
+
+      if (currentUser) {
+        // Defer the RPC call outside the auth lock using setTimeout
+        setTimeout(() => {
+          checkAdminRole(currentUser.id).then(setIsAdmin);
+        }, 0);
       } else {
         setIsAdmin(false);
       }
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        try {
-          const { data } = await supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
-          setIsAdmin(!!data);
-        } catch (e) {
-          console.warn("Error checking admin role:", e);
-          setIsAdmin(false);
-        }
-      }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const logout = async () => {
+    // Optimistically clear state before the network call
+    setUser(null);
+    setIsAdmin(false);
+
     try {
       await supabase.auth.signOut();
-      // onAuthStateChange will fire and clear user/isAdmin/loading automatically
     } catch (error) {
       console.error("Error logging out:", error);
-      // Force clear state if signOut threw
-      setUser(null);
-      setIsAdmin(false);
+      // State is already cleared above — nothing more to do
     }
   };
 
