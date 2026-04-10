@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,14 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 const ContactPage = () => {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.from("contact_messages").insert({
+      full_name: form.name,
+      email: form.email,
+      subject: form.subject,
+      message: form.message,
+    });
+    setLoading(false);
+    if (error) {
+      toast.error("Failed to send message. Please try again.");
+      return;
+    }
     toast.success("Message sent! We'll get back to you soon.");
+    setForm({ name: "", email: "", subject: "", message: "" });
   };
 
   return (
@@ -31,12 +49,14 @@ const ContactPage = () => {
                 <CardContent className="p-6">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label>Name</Label><Input required /></div>
-                      <div><Label>Email</Label><Input type="email" required /></div>
+                      <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
+                      <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
                     </div>
-                    <div><Label>Subject</Label><Input required /></div>
-                    <div><Label>Message</Label><Textarea rows={5} required /></div>
-                    <Button type="submit" className="w-full bg-safari-gradient text-primary-foreground hover:opacity-90">Send Message</Button>
+                    <div><Label>Subject</Label><Input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} required /></div>
+                    <div><Label>Message</Label><Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={5} required /></div>
+                    <Button type="submit" className="w-full bg-safari-gradient text-primary-foreground hover:opacity-90" disabled={loading}>
+                      {loading ? "Sending..." : "Send Message"}
+                    </Button>
                   </form>
                 </CardContent>
               </Card>
