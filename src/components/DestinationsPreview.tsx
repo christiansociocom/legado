@@ -61,7 +61,6 @@ const DestinationsPreview = () => (
 export default DestinationsPreview;
 ```
 
-
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { MapPin, ArrowRight } from "lucide-react";
