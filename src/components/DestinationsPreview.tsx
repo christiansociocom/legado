@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+```import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { MapPin, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -57,5 +57,93 @@ const DestinationsPreview = () => (
     </div>
   </section>
 );
+
+export default DestinationsPreview;
+```
+
+
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { MapPin, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+import imgSerengeti from "@/assets/dest-serengeti.jpg";
+import imgNgorongoro from "@/assets/dest-ngorongoro.jpg";
+import imgKilimanjaro from "@/assets/dest-kilimanjaro.jpg";
+import imgZanzibar from "@/assets/dest-zanzibar.jpg";
+import imgTarangire from "@/assets/dest-tarangire.jpg";
+import imgManyara from "@/assets/dest-manyara.jpg";
+
+const destinationData = [
+  { nameKey: "Serengeti National Park", descKey: "Witness the Great Migration across endless plains", image: imgSerengeti, slug: "serengeti" },
+  { nameKey: "Ngorongoro Crater", descKey: "The world's largest intact volcanic caldera", image: imgNgorongoro, slug: "ngorongoro" },
+  { nameKey: "Mount Kilimanjaro", descKey: "Africa's highest peak and a climber's dream", image: imgKilimanjaro, slug: "kilimanjaro" },
+  { nameKey: "Zanzibar", descKey: "Tropical paradise with turquoise waters", image: imgZanzibar, slug: "zanzibar" },
+  { nameKey: "Tarangire National Park", descKey: "Ancient baobabs and elephant herds", image: imgTarangire, slug: "tarangire" },
+  { nameKey: "Lake Manyara", descKey: "Flamingos, tree-climbing lions and lush forests", image: imgManyara, slug: "manyara" },
+];
+
+const destDescriptions: Record<string, Record<string, string>> = {
+  en: {
+    "Serengeti National Park": "Witness the Great Migration across endless plains",
+    "Ngorongoro Crater": "The world's largest intact volcanic caldera",
+    "Mount Kilimanjaro": "Africa's highest peak and a climber's dream",
+    "Zanzibar": "Tropical paradise with turquoise waters",
+    "Tarangire National Park": "Ancient baobabs and elephant herds",
+    "Lake Manyara": "Flamingos, tree-climbing lions and lush forests",
+  },
+  es: {
+    "Serengeti National Park": "Presencia la Gran Migración en las llanuras interminables",
+    "Ngorongoro Crater": "La caldera volcánica intacta más grande del mundo",
+    "Mount Kilimanjaro": "El pico más alto de África, sueño de todo escalador",
+    "Zanzibar": "Paraíso tropical con aguas turquesas",
+    "Tarangire National Park": "Baobabs milenarios y manadas de elefantes",
+    "Lake Manyara": "Flamencos, leones trepadores y exuberantes bosques",
+  },
+};
+
+const DestinationsPreview = () => {
+  const { t, language } = useLanguage();
+
+  return (
+    <section className="py-20 bg-background">
+      <div className="container mx-auto px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
+          <p className="text-primary uppercase tracking-[0.2em] text-sm font-medium mb-2">{t("dest.explore")}</p>
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">{t("dest.title")}</h2>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {destinationData.map((d, i) => (
+            <motion.div
+              key={d.slug}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+            >
+              <Link to="/destinations" className="group block relative rounded-xl overflow-hidden aspect-[4/3] shadow-safari">
+                <img src={d.image} alt={d.nameKey} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" width={800} height={600} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <div className="flex items-center gap-1 text-safari-gold text-xs mb-1">
+                    <MapPin className="w-3 h-3" /> {t("dest.country")}
+                  </div>
+                  <h3 className="font-display text-xl font-bold text-primary-foreground mb-1">{d.nameKey}</h3>
+                  <p className="text-primary-foreground/70 text-sm">{destDescriptions[language]?.[d.nameKey] || destDescriptions["en"][d.nameKey]}</p>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+        <div className="text-center mt-10">
+          <Button asChild variant="outline" size="lg">
+            <Link to="/destinations">{t("dest.viewAll")} <ArrowRight className="w-4 h-4 ml-2" /></Link>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 export default DestinationsPreview;
